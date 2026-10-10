@@ -2,7 +2,7 @@ import logging
 
 from dotenv import load_dotenv
 from livekit import agents
-from livekit.agents import Agent, AgentServer, AgentSession, JobContext, room_io
+from livekit.agents import Agent, AgentServer, AgentSession, JobContext, inference, llm, room_io
 from livekit.plugins import noise_cancellation, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
@@ -15,7 +15,8 @@ class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
             instructions="You are an upbeat, slightly sarcastic voice AI for tech support. "
-                "Help the caller fix issues without rambling, and keep replies under 3 sentences.",  # System prompt for the LLM
+            # System prompt for the LLM
+            "Help the caller fix issues without rambling, and keep replies under 3 sentences.",
         )
 
 
@@ -27,9 +28,23 @@ server = AgentServer()
 async def entrypoint(ctx: JobContext):
     # Configure the voice pipeline with STT, LLM, TTS, and VAD providers
     session = AgentSession(
-        stt="assemblyai/universal-streaming:en",  # Speech-to-text provider
-        llm="openai/gpt-4.1-mini",                # Language model for responses
-        tts="cartesia/sonic-3:cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",                   # Text-to-speech voice
+        # Speech-to-text, with server-side fallback to Deepgram if AssemblyAI fails
+        stt=inference.STT(
+            model="assemblyai/universal-streaming",
+            language="en",
+            fallback=["deepgram/nova-3"],
+        ),
+        # Language model, with client-side fallback to Gemini if OpenAI fails
+        llm=llm.FallbackAdapter([
+            inference.LLM(model="openai/gpt-4.1-mini"),
+            inference.LLM(model="google/gemini-2.5-flash"),
+        ]),
+        # Text-to-speech, with server-side fallback to Inworld if Cartesia fails
+        tts=inference.TTS(
+            model="cartesia/sonic-3",
+            voice="9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
+            fallback=[{"model": "inworld/inworld-tts-1", "voice": "Ashley"}],
+        ),
         vad=silero.VAD.load(),                    # Voice activity detection
         turn_detection=MultilingualModel(),  # Semantic turn detection
     )
