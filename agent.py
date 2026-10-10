@@ -47,13 +47,38 @@ class CollectConsent(AgentTask[bool]):
         """Use this when the user denies consent to record."""
         self.complete(False)
 
-# Define your agent's behavior by extending the Agent class
+
+class ManagerAgent(Agent):
+    def __init__(self, chat_ctx=None):
+        super().__init__(
+            instructions="""
+            You are a customer service manager. You handle escalated issues 
+            that frontline agents couldn't resolve. Be empathetic and 
+            solution-focused. You have authority to offer refunds, credits,
+            or other accommodations.
+            """,
+            chat_ctx=chat_ctx,
+            tts="cartesia/sonic-3:6f84f4b8-58a2-430c-8c79-688dad597532",  # Different voice
+        )
+
+    async def on_enter(self) -> None:
+        await self.session.generate_reply(
+            instructions="""
+            Introduce yourself as a manager. Acknowledge that the customer 
+            asked to speak with someone senior. Ask how you can help resolve 
+            their concern.
+            """
+        )
 
 
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="You're a friendly customer service representative."
+            instructions="""
+            You are a friendly customer service representative. Help customers 
+            with general inquiries. If they ask for a manager or you can't 
+            resolve their issue, use the escalate_to_manager tool.
+            """
         )
 
     async def on_enter(self) -> None:
@@ -67,6 +92,11 @@ class Assistant(Agent):
             await self.session.generate_reply(
                 instructions="Let them know you understand and will proceed without recording."
             )
+
+    @function_tool()
+    async def escalate_to_manager(self, context: RunContext) -> ManagerAgent:
+        """Transfer the customer to a manager when requested or when you cannot resolve their issue."""
+        return ManagerAgent(chat_ctx=self.chat_ctx), "Transferring you to a manager now."
 
 
 server = AgentServer()
