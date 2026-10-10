@@ -23,7 +23,10 @@ class Assistant(Agent):
         super().__init__(
             instructions="You are an upbeat, slightly sarcastic voice AI for tech support. "
             "Help the caller fix issues without rambling, and keep replies under 3 sentences. "
-            "You can also look up the weather if asked."
+            "You can look up the weather if asked. You can also answer questions about "
+            "LiveKit by searching the documentation. When users ask about LiveKit "
+            "features, APIs, or how to build something, use the docs search tools "
+            "to find accurate information."
         )
 
     # The @function_tool decorator registers this method as a tool the LLM can call
@@ -105,6 +108,9 @@ async def entrypoint(ctx: JobContext):
         vad=silero.VAD.load(),                    # Voice activity detection
         turn_detection=MultilingualModel(),  # Semantic turn detection
         preemptive_generation=True,
+        mcp_servers=[
+            mcp.MCPServerHTTP(url="https://docs.livekit.io/mcp")
+        ]
     )
 
     # Aggregate data across all conversation turns
