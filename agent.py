@@ -31,6 +31,7 @@ async def entrypoint(ctx: JobContext):
         llm="openai/gpt-4.1-mini",                # Language model for responses
         tts="cartesia/sonic-3:cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",                   # Text-to-speech voice
         vad=silero.VAD.load(),                    # Voice activity detection
+        turn_detection=MultilingualModel(),  # Semantic turn detection
     )
 
     # Start the session with noise cancellation enabled
