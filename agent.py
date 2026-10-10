@@ -50,6 +50,7 @@ async def entrypoint(ctx: JobContext):
         ),
         vad=silero.VAD.load(),                    # Voice activity detection
         turn_detection=MultilingualModel(),  # Semantic turn detection
+        preemptive_generation=True,
     )
 
     # Aggregate data across all conversation turns
