@@ -43,6 +43,8 @@ class Assistant(Agent):
         """
         # The docstring above becomes the tool description the LLM sees
         # when deciding which tool to call
+        # Let the user know we're working on it
+        await context.session.say("Let me search for that...")
 
         async with httpx.AsyncClient() as client:
             # First, geocode the location to get coordinates
